@@ -1,0 +1,36 @@
+name: Update guide
+
+on:
+  schedule:
+    - cron: "17 3 * * *"   # chaque nuit à 03:17 UTC
+  workflow_dispatch:        # permet aussi de le lancer à la main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Récupérer iptv-org/epg
+        run: git clone --depth 1 -b master https://github.com/iptv-org/epg.git tool
+
+      - name: Installer
+        run: cd tool && npm install
+
+      - name: Générer le guide
+        run: cd tool && npm run grab --- --sites=programme-tv.net --output=../guide.xml
+
+      - name: Publier guide.xml
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add guide.xml
+          git diff --staged --quiet || (git commit -m "Update guide" && git push)
